@@ -8,20 +8,17 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Regex to validate email format
   const isValidEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   };
 
   const handleLogin = async () => {
-    // Validate email format
     if (!isValidEmail(email)) {
       Alert.alert("Invalid Email", "Please enter a valid email address.");
       return;
     }
 
-    // Check if the password is at least 6 characters
     if (password.length < 6) {
       Alert.alert("Invalid Password", "Password must be at least 6 characters.");
       return;
@@ -31,12 +28,10 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // Attempt to sign in with Firebase Authentication
       await signInWithEmailAndPassword(auth, email, password);
       Alert.alert("Success", "Logged in successfully!");
       router.push("./Home");
     } catch (error) {
-      // Handle Firebase authentication errors
       switch (error.code) {
         case "auth/user-not-found":
           Alert.alert("Login Error", "User not found. Please register first.");

@@ -1,50 +1,92 @@
-# Welcome to your Expo app 👋
+cat << EOF > README.md
+# **Welcome to RN Sisal Word 👋**
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+This is an [Expo](https://expo.dev) project created with [create-expo-app](https://www.npmjs.com/package/create-expo-app). RN Sisal Word is a React Native app for OCR-based text recognition, voice-to-text, and manual text translation with Firebase integration.
 
-## Get started
+## **Get Started**
 
-1. Install dependencies
+1. **Install dependencies**
 
-   ```bash
+   \`\`\`bash
    npm install
-   ```
+   \`\`\`
 
-2. Start the app
+2. **Start the app**
 
-   ```bash
-    npx expo start
-   ```
+   \`\`\`bash
+   npx expo start
+   \`\`\`
 
-In the output, you'll find options to open the app in a
+You’ll see options to open the app in:
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
+- [Development build](https://docs.expo.dev/develop/development-builds/introduction/)
 - [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
 - [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+- [Expo Go](https://expo.dev/go), a limited sandbox for app development with Expo.
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## **Features**
 
-## Get a fresh project
+- **Camera-based OCR**  
+  Capture images, extract text using OCR (\`@react-native-ml-kit/text-recognition\`), translate the text, and save it to Firebase.
 
-When you're ready, run:
+- **Voice-to-Text Translation**  
+  Use the voice-to-text functionality (\`@react-native-voice/voice\`) to translate spoken words and save them.
 
-```bash
-npm run reset-project
-```
+- **Manual Text Translation**  
+  Manually input text, translate it, and store translations in Firebase for future reference.
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+- **Firebase Integration**  
+  - User authentication (login and registration) via **Firebase Authentication**.
+  - Save translations and manage user data in **Firebase Realtime Database**.
 
-## Learn more
+## **Folder Structure**
 
-To learn more about developing your project with Expo, look at the following resources:
+\`\`\`
+RN-Sisal-Word/
+├── app/
+│   └── pages/
+│       ├── Camera.tsx       # Camera-based OCR and translation
+│       ├── Home.tsx         # Main navigation hub
+│       ├── Input.tsx        # Manual text translation and saving
+│       ├── Login.tsx        # User login functionality
+│       ├── Register.tsx     # User registration functionality
+│       └── Voice.tsx        # Voice-to-text translation
+├── App.js                   # Main entry point of the app
+└── app.json                 # Expo configuration file
+\`\`\`
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## **Usage**
 
-## Join the community
+To test and develop this project:
 
-Join our community of developers creating universal apps.
+1. **Run the app**  
+   Start the project with:
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+   \`\`\`bash
+   npx expo start
+   \`\`\`
+
+2. **Navigate the app**  
+   - Explore the **Home** page to access core features:
+     - Camera-based OCR
+     - Voice-to-text translation
+     - Manual text translation
+   - Log in or register to save your translations.
+
+## **Resources**
+
+- **Documentation**  
+  - [Expo](https://docs.expo.dev/)  
+  - [Firebase](https://firebase.google.com/docs/)  
+  - [@react-native-ml-kit/text-recognition](https://github.com/balthazar/react-native-ml-kit)  
+  - [@react-native-voice/voice](https://github.com/react-native-voice/voice)
+
+- **Guides for Beginners**  
+  - Follow the associated **Medium article series** to learn how this app was built step by step.
+
+## **Contribute**
+
+Feel free to fork this project, report issues, or submit pull requests to enhance its functionality.
+
+---
+EOF

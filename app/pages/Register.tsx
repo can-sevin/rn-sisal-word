@@ -8,20 +8,17 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Regex to validate email format
   const isValidEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   };
 
   const handleRegister = async () => {
-    // Validate email format
     if (!isValidEmail(email)) {
       Alert.alert("Invalid Email", "Please enter a valid email address.");
       return;
     }
 
-    // Check if the password is at least 6 characters
     if (password.length < 6) {
       Alert.alert("Invalid Password", "Password must be at least 6 characters.");
       return;
@@ -31,11 +28,9 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      // Create a new user with Firebase Authentication
       await createUserWithEmailAndPassword(auth, email, password);
       Alert.alert("Success", "Account created successfully!");
     } catch (error) {
-      // Handle Firebase authentication errors
       Alert.alert("Registration Error", error.message);
     } finally {
       setLoading(false);
