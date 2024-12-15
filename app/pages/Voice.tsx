@@ -7,6 +7,7 @@ import {
   FlatList,
   Alert,
   Button,
+  ActivityIndicator,
 } from "react-native";
 import Voice from "@wdragon/react-native-voice";
 import { useRouter } from "expo-router";
@@ -22,10 +23,19 @@ export default function VoiceScreen({ route }) {
   const [words, setWords] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const mainLanguage = route?.params?.main || "en";
-  const targetLanguage = route?.params?.target || "fr";
+  const mainLanguage = route?.params?.main;
+  const targetLanguage = route?.params?.target;
 
   useEffect(() => {
+    if (!mainLanguage || !targetLanguage) {
+      Alert.alert(
+        "Missing Language Parameters",
+        "Required language parameters are not provided. Please go back and try again."
+      );
+      router.back();
+      return;
+    }
+
     Voice.onSpeechStart = onSpeechStart;
     Voice.onSpeechEnd = onSpeechEnd;
     Voice.onSpeechResults = onSpeechResults;
@@ -36,21 +46,17 @@ export default function VoiceScreen({ route }) {
     };
   }, []);
 
-  const onSpeechStart = () => {
-    setIsListening(true);
-  };
+  const onSpeechStart = () => setIsListening(true);
 
-  const onSpeechEnd = () => {
-    setIsListening(false);
-  };
+  const onSpeechEnd = () => setIsListening(false);
 
-  const onSpeechResults = (event: { value: any[]; }) => {
+  const onSpeechResults = (event) => {
     const sentence = event.value[0];
     setRecognizedText(sentence);
-    setWords(sentence.split(" ").map((word: string) => word.trim()));
+    setWords(sentence.split(" ").map((word) => word.trim()));
   };
 
-  const onSpeechError = (event: { error: any; }) => {
+  const onSpeechError = (event) => {
     console.error("Speech recognition error:", event.error);
     Alert.alert("Error", "Speech recognition failed. Please try again.");
     setIsListening(false);
@@ -64,7 +70,7 @@ export default function VoiceScreen({ route }) {
       await Voice.start(mainLanguage);
     } catch (error) {
       console.error("Error starting speech recognition:", error);
-      Alert.alert("Error", "Could not start speech recognition.");
+      Alert.alert("Error", "An issue occurred while starting speech recognition.");
     }
   };
 
@@ -77,12 +83,12 @@ export default function VoiceScreen({ route }) {
     }
   };
 
-  const translateAndSaveWord = async (word: any) => {
+  const translateAndSaveWord = async (word) => {
     const auth = getAuth();
     const currentUser = auth.currentUser;
 
     if (!currentUser) {
-      Alert.alert("User not logged in", "Please log in to save your words.");
+      Alert.alert("Error", "You need to log in to save the word.");
       return;
     }
 
@@ -107,10 +113,10 @@ export default function VoiceScreen({ route }) {
       const wordRef = ref(database, `${tablePath}/${key}`);
       await set(wordRef, wordEntry);
 
-      Alert.alert("Success", `Word "${word}" translated to "${translated[0]}" and saved!`);
+      Alert.alert("Success", `The word "${word}" has been saved as "${translated[0]}".`);
     } catch (error) {
       console.error("Error translating or saving word:", error);
-      Alert.alert("Error", "Could not translate or save the word.");
+      Alert.alert("Error", "Failed to save the word.");
     } finally {
       setLoading(false);
     }
@@ -125,6 +131,17 @@ export default function VoiceScreen({ route }) {
       <Text style={styles.wordText}>{item}</Text>
     </TouchableOpacity>
   );
+
+  if (!mainLanguage || !targetLanguage) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>
+          Missing language parameters. Please go back and try again.
+        </Text>
+        <Button title="Go Back" onPress={() => router.back()} />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -141,6 +158,8 @@ export default function VoiceScreen({ route }) {
           </Text>
         </TouchableOpacity>
       </View>
+
+      {loading && <ActivityIndicator size="large" color="#007bff" />}
 
       <Text style={styles.recognizedText}>{recognizedText}</Text>
 
@@ -205,5 +224,16 @@ const styles = StyleSheet.create({
   footer: {
     marginTop: 20,
     alignItems: "center",
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  errorText: {
+    color: "red",
+    fontSize: 18,
+    marginBottom: 20,
+    textAlign: "center",
   },
 });

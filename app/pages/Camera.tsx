@@ -1,9 +1,8 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
-  Button,
   ScrollView,
   StyleSheet,
   Alert,
@@ -23,21 +22,24 @@ export default function CameraPage({ route }) {
   const [capturedWords, setCapturedWords] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const mainFlag = route?.params?.main || "en";
-  const targetFlag = route?.params?.target || "fr";
+  const mainFlag = route?.params?.main;
+  const targetFlag = route?.params?.target;
 
   useEffect(() => {
-    (async () => {
-      if (!permission) {
-        return (
-          <View>
-            <Text>Camera permission is required</Text>
-            <Button title="Grant Permission" onPress={requestPermission} />
-          </View>
-        );
-      }
-    })();
-  }, []);
+    if (!permission?.granted) {
+      requestPermission();
+    }
+  }, [permission]);
+
+  if (!mainFlag || !targetFlag) {
+    return (
+      <View style={styles.permissionContainer}>
+        <Text style={styles.errorText}>
+          Missing language parameters. Please go back and try again.
+        </Text>
+      </View>
+    );
+  }
 
   const toggleCameraFacing = () => {
     setFacing((current) => (current === "back" ? "front" : "back"));
@@ -64,7 +66,7 @@ export default function CameraPage({ route }) {
       setCapturedWords(words);
     } catch (error) {
       console.error("Error processing image:", error);
-      Alert.alert("Error", "Could not process the image.");
+      Alert.alert("Error", "An error occurred while processing the image.");
     } finally {
       setLoading(false);
     }
@@ -74,7 +76,7 @@ export default function CameraPage({ route }) {
     try {
       setLoading(true);
 
-      const translation = await translate(word, { from: mainFlag, to: targetFlag });
+      const [translation] = await translate([word], { from: mainFlag, to: targetFlag });
       const auth = getAuth();
       const currentUser = auth.currentUser;
 
@@ -90,13 +92,13 @@ export default function CameraPage({ route }) {
 
       await set(wordRef, {
         original: word,
-        translated: translation[0],
+        translated: translation,
       });
 
-      Alert.alert("Success", `Saved "${word}" as "${translation[0]}"`);
+      Alert.alert("Success", `"${word}" has been saved as "${translation}".`);
     } catch (error) {
-      console.error("Error translating or saving word:", error);
-      Alert.alert("Error", "Could not save the word.");
+      console.error("Error during translation or saving:", error);
+      Alert.alert("Error", "Failed to save the word.");
     } finally {
       setLoading(false);
     }
@@ -105,8 +107,10 @@ export default function CameraPage({ route }) {
   if (!permission?.granted) {
     return (
       <View style={styles.permissionContainer}>
-        <Text>Camera permission is required</Text>
-        <Button title="Grant Permission" onPress={requestPermission} />
+        <Text>Camera permission is required.</Text>
+        <TouchableOpacity onPress={requestPermission} style={styles.permissionButton}>
+          <Text style={styles.buttonText}>Grant Permission</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -156,6 +160,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  permissionButton: {
+    backgroundColor: "#007bff",
+    padding: 10,
+    borderRadius: 5,
+    marginTop: 10,
+  },
   camera: {
     flex: 3,
   },
@@ -189,5 +199,11 @@ const styles = StyleSheet.create({
   wordText: {
     color: "white",
     fontSize: 16,
+  },
+  errorText: {
+    color: "red",
+    fontSize: 18,
+    textAlign: "center",
+    marginTop: 20,
   },
 });

@@ -2,13 +2,23 @@ import { Flags } from "@/config/flag";
 import { router } from "expo-router";
 import { getAuth, signOut } from "firebase/auth";
 import React, { useEffect, useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, FlatList, Alert } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  FlatList,
+  Alert,
+  ActivityIndicator,
+} from "react-native";
 import { getDatabase, ref, onValue } from "firebase/database";
+import { fetchTranslations } from "@/config/gpt";
 
 export default function HomeScreen() {
   const [sourceLanguage, setSourceLanguage] = useState("en");
-  const [targetLanguage, setTargetLanguage] = useState("fr");
+  const [targetLanguage, setTargetLanguage] = useState("tr");
   const [wordList, setWordList] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     fetchWordList();
@@ -28,19 +38,80 @@ export default function HomeScreen() {
     const tablePath = `${userId}/words/${sourceLanguage}-${targetLanguage}`;
     const wordsRef = ref(database, tablePath);
 
-    onValue(wordsRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const words = snapshot.val();
-        const formattedWordList = Object.keys(words).map((key) => ({
-          id: key,
-          source: words[key].original,
-          target: words[key].translated,
-        }));
-        setWordList(formattedWordList);
-      } else {
-        setWordList([]);
+    setLoading(true);
+    onValue(
+      wordsRef,
+      (snapshot) => {
+        if (snapshot.exists()) {
+          const words = snapshot.val();
+          const formattedWordList = Object.keys(words).map((key) => ({
+            id: key,
+            source: words[key].original,
+            target: words[key].translated,
+          }));
+          setWordList(formattedWordList);
+        } else {
+          setWordList([]);
+        }
+        setLoading(false);
+      },
+      (error) => {
+        console.error("Error fetching words:", error);
+        setLoading(false);
       }
-    });
+    );
+  };
+
+  const handlePractice = async () => {
+    if (wordList.length === 0) {
+      Alert.alert("No Words", "Please add words before practicing.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const originalWords = wordList.map((word) => word.source);
+      const translatedWords = wordList.map((word) => word.target);
+
+      const preparedQuestions = [];
+      await fetchTranslations(
+        originalWords,
+        translatedWords,
+        targetLanguage,
+        (cards) => {
+          if (cards.length > 0) {
+            cards.forEach(({ text: originalWord, correct: translatedWord, ...options }) => {
+              const allOptions = [options.top, options.bottom, options.left, options.right].sort(
+                () => Math.random() - 0.5
+              );
+              preparedQuestions.push({
+                originalWord,
+                translatedWord,
+                options: allOptions,
+              });
+            });
+          } else {
+            console.error("Failed to prepare questions.");
+          }
+        },
+        setLoading
+      );
+
+      router.push({
+        pathname: "./Question",
+        params: {
+          main: sourceLanguage,
+          target: targetLanguage,
+          words: JSON.stringify(preparedQuestions),
+        },
+      });
+    } catch (error) {
+      console.error("Error preparing questions:", error);
+      Alert.alert("Error", "Failed to prepare questions.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleLogout = async () => {
@@ -63,19 +134,23 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Logout Button */}
       <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
         <Text style={styles.logoutText}>Logout</Text>
       </TouchableOpacity>
 
-      {/* Language Selection */}
       <View style={styles.languageSelection}>
         <Text style={styles.languageLabel}>Source Language:</Text>
         <View style={styles.languageOptions}>
           {Object.keys(Flags).map((langCode) => (
             <TouchableOpacity
               key={langCode}
-              onPress={() => setSourceLanguage(langCode)}
+              onPress={() => {
+                if (langCode !== targetLanguage) {
+                  setSourceLanguage(langCode);
+                } else {
+                  Alert.alert("Error", "Source and target languages cannot be the same.");
+                }
+              }}
               style={[
                 styles.languageOption,
                 sourceLanguage === langCode && styles.selectedLanguage,
@@ -91,7 +166,13 @@ export default function HomeScreen() {
           {Object.keys(Flags).map((langCode) => (
             <TouchableOpacity
               key={langCode}
-              onPress={() => setTargetLanguage(langCode)}
+              onPress={() => {
+                if (langCode !== sourceLanguage) {
+                  setTargetLanguage(langCode);
+                } else {
+                  Alert.alert("Error", "Target and source languages cannot be the same.");
+                }
+              }}
               style={[
                 styles.languageOption,
                 targetLanguage === langCode && styles.selectedLanguage,
@@ -103,15 +184,25 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {/* Word List */}
-      <FlatList
-        data={wordList}
-        keyExtractor={(item) => item.id}
-        renderItem={renderWordItem}
-        contentContainerStyle={styles.wordList}
-      />
+      {loading ? (
+        <ActivityIndicator size="large" color="#0000ff" />
+      ) : (
+        <FlatList
+          data={wordList}
+          keyExtractor={(item) => item.id}
+          renderItem={renderWordItem}
+          contentContainerStyle={styles.wordList}
+        />
+      )}
 
-      {/* Add Word Section */}
+      <TouchableOpacity style={styles.practiceButton} onPress={handlePractice} disabled={loading}>
+        {loading ? (
+          <ActivityIndicator size="small" color="#fff" />
+        ) : (
+          <Text style={styles.practiceButtonText}>Practice</Text>
+        )}
+      </TouchableOpacity>
+
       <View style={styles.addWordSection}>
         <Text style={styles.addWordText}>Add Word:</Text>
         <View style={styles.addWordOptions}>
@@ -126,18 +217,26 @@ export default function HomeScreen() {
           >
             <Text style={styles.addWordButtonText}>Input</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.addWordButton} onPress={() =>               
-          router.push({
+          <TouchableOpacity
+            style={styles.addWordButton}
+            onPress={() =>
+              router.push({
                 pathname: "./Voice",
                 params: { main: sourceLanguage, target: targetLanguage },
-              })}>
+              })
+            }
+          >
             <Text style={styles.addWordButtonText}>Voice</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.addWordButton} onPress={() =>               
-          router.push({
+          <TouchableOpacity
+            style={styles.addWordButton}
+            onPress={() =>
+              router.push({
                 pathname: "./Camera",
                 params: { main: sourceLanguage, target: targetLanguage },
-              })}>
+              })
+            }
+          >
             <Text style={styles.addWordButtonText}>Camera</Text>
           </TouchableOpacity>
         </View>
@@ -190,6 +289,7 @@ const styles = StyleSheet.create({
   wordList: {
     flexGrow: 1,
     marginVertical: 20,
+    paddingBottom: 20,
   },
   wordItem: {
     flexDirection: "row",
@@ -200,6 +300,18 @@ const styles = StyleSheet.create({
   },
   wordText: {
     fontSize: 18,
+  },
+  practiceButton: {
+    marginTop: 20,
+    backgroundColor: "#28a745",
+    padding: 15,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  practiceButtonText: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "bold",
   },
   addWordSection: {
     marginTop: 20,
